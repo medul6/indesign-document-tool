@@ -5,7 +5,7 @@ Description
 -------
 
 
-This is an AppleScript for modifying the pages all open documents. Like:
+This is an AppleScript for modifying the pages in all open documents. Like:
 
 * "Alle Kapitelanfänge löschen" -- remove all sections (except for the first of course ...)
 * "Seiten löschen" -- delete pages
