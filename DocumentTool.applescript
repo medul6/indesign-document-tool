@@ -1,5 +1,5 @@
 -- DocumentTool for InDesign
--- version 1.2
+-- version 1.3
 
 -- created by medul6, Michael Heck, 2014
 -- NOT open sourced YET on September 7th, 2012 on Github > check the LICENSE.txt and README.md in the repository for detailed information
@@ -26,6 +26,8 @@ global splittedRangeMagic
 --global incrementValue
 --global repeatNumber
 --global textOverflows
+global xValue
+global yValue
 
 --test variables!!!
 --global xxx
@@ -44,6 +46,7 @@ global splittedRangeMagic
 
 --properties!
 property functionChoice : {"Vorschau einschalten"}
+property pointsToMM : 0.352777778
 --property chosenPreset : {"sk-Screen"}
 --property pageRange : "all pages"
 
@@ -81,7 +84,7 @@ end tell
 -- еееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееее
 
 on functionChooser()
-	set functionChoice to choose from list {"Bezugspunkt setzen", "Vorschau einschalten", "Vorschau ausschalten", "Alle KapitelanfКnge lЪschen", "Seiten lЪschen ...", "Seiten einfЯgen ...", "Seiten verschieben ..."} default items functionChoice with prompt "Funktion wКhlen:" OK button name "Weiter!"
+	set functionChoice to choose from list {"Bezugspunkt setzen", "Vorschau einschalten", "Vorschau ausschalten", "Alle KapitelanfКnge lЪschen", "Seiten lЪschen ...", "Seiten einfЯgen ...", "Seiten verschieben ...", "SeitengrЪзe ..."} default items functionChoice with prompt "Funktion wКhlen:" OK button name "Weiter!"
 	
 	if the functionChoice = {"Bezugspunkt setzen"} then
 		my setOrigin()
@@ -97,6 +100,8 @@ on functionChooser()
 		my insertPages()
 	else if the functionChoice = {"Seiten verschieben ..."} then
 		my movePages()
+	else if the functionChoice = {"SeitengrЪзe ..."} then
+		my resizePages()
 	end if
 	
 end functionChooser
@@ -476,6 +481,84 @@ on setOrigin()
 		end if
 	end tell
 end setOrigin
+
+-- еееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееее
+
+on resizePages()
+	tell application id "com.adobe.InDesign"
+		
+		set buttonName to functionChoice & " !" as string
+		
+		display dialog "Welche Seiten sollen vergrЪзert/verkleinert werden?" & return & "Seiten mЯssen nicht zusammenhКngen, z.B. '2-3,8-19'" default answer "" buttons {"Abbrechen!", (buttonName as string)} default button (buttonName as string)
+		if button returned of result is "Abbrechen!" then
+			return
+		else
+			set inputRange to (text returned of result)
+			my xyCoordinatesDialog()
+		end if
+		
+		my inputRangeSplitter(inputRange)
+		my MagicSplitter(splittedRange)
+		
+		--set splittedRangeReverse to reverse of splittedRange
+		set splittedRangeReverse to reverse of splittedMagic
+		
+		repeat with x from 1 to count openDocuments -- this iterates through all open documents
+			repeat with y from 1 to count splittedRangeReverse -- this iterates through all pages
+				--delete page (splittedRangeReverse's item y) of openDocuments's item x
+				tell openDocuments's item x
+					--Resize page to two times bigger
+					--resize page 2 in inner coordinates from center anchor by multiplying current dimensions by values {0.5, 1}
+					--Resize page to 400 points width and 600 points height.
+					--resize item 3 in inner coordinates from center anchor by replacing current dimensions with values {200, 600} with considering ruler units
+					--resize page 2 in inner coordinates from {{0, 0}, 2} by replacing current dimensions with values {105 / pointsToMM, 297 / pointsToMM}
+					--esize page 3 in inner coordinates from {{0, 0}, 2} by replacing current dimensions with values {200, 200} with considering ruler units
+					resize page (splittedRangeReverse's item y as integer) in inner coordinates from {{0, 0}} by replacing current dimensions with values {xValue / pointsToMM, yValue / pointsToMM}
+				end tell
+			end repeat
+		end repeat
+		
+	end tell
+	set stopBool to true
+end resizePages
+
+-- еееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееее
+
+on xyCoordinatesDialog()
+	
+	tell application id "com.adobe.InDesign"
+		
+		set myLabelWidth to 10
+		
+		set myDialog to make dialog with properties {name:"Koordinaten eingeben"}
+		tell myDialog
+			tell (make dialog column)
+				tell (make dialog row)
+					tell (make dialog column)
+						make static text with properties {static label:"x:", min width:myLabelWidth}
+						make static text with properties {static label:"y:", min width:myLabelWidth}
+					end tell
+					tell (make dialog column)
+						set myXField to make text editbox with properties {edit contents:("0" as string)}
+						set myYField to make text editbox with properties {edit contents:("297" as string)}
+					end tell
+				end tell
+			end tell
+		end tell
+		
+		set myResult to show myDialog
+		if myResult is true then
+			set xValue to edit contents of myXField
+			set yValue to edit contents of myYField
+			destroy myDialog
+			--my doSomething(xValue, yValue)
+		else
+			destroy myDialog
+		end if
+		
+	end tell
+	
+end xyCoordinatesDialog
 
 -- еееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееееее
 
